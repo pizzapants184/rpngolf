@@ -1,0 +1,5 @@
+# '#' Starts a comment that extends to the end of the line, when not in a quote or parentheses
+'Hello,'# Single quotes denote strings
+'World!
+# RPNGolf implicitly prints the stack, coerced to strings, concatenated with spaces, when exiting normally
+# Unclosed quotes are closed at the end of a line
