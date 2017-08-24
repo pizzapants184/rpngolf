@@ -1,7 +1,12 @@
+# RPNGolf by pizzapants184
+# https://github.com/pizzapants184/rpngolf
+
 import math
 import re
 import operator
 import sys
+
+version = (0, 6, 0)
 
 # Each command is one letter, lowercase means execute, uppercase means push its routine to the stack
 # For multi-char commands, the first char's case determines this, the second char determines what command it is (case-sensitively)
@@ -17,6 +22,16 @@ import sys
 # > ABa
 # stack: [Routine('ab')]
 
+def copystack(s=None):
+	if s is None:
+		s = stack
+	_s = []
+	for item in s:
+		if isinstance(item, list):
+			_s.append(copystack(item))
+		else:
+			_s.append(item)
+	return _s
 class Routine:
 	def __init__(self, source):
 		self.source = source
@@ -26,7 +41,7 @@ class Routine:
 			print("Routine.__call__: %s"%self)
 		if not isinstance(self, Routine):
 			self = cr(self) # defined later
-		do(self)
+		do_routine(self)
 	def __repr__(self):
 		return "(%s)" % self.source
 	def __add__(self, other):
@@ -89,6 +104,16 @@ cs = lambda a: coerce(a, str)
 cl = lambda a: coerce(a, list)
 cr = lambda a: coerce(a, Routine)
 
+def unimplemented():
+	raise NotImplementedError
+def rrotate():
+	if len(stack):
+		stack.insert(0, stack.pop())
+def lrotate():
+	if len(stack):
+		stack.append(stack.pop(0))
+
+
 # name: (function, argc),
 #  argc >= 0: number of args
 #  argc == -1: top of stack is # of args
@@ -103,6 +128,7 @@ defaults = {
 	'e': (operator.pow, 2),
 	'f': (operator.floordiv, 2),
 	'g': (operator.mod, 2),
+	#'g': (testmod, 2),
 	'h': ((lambda a: a-1), 1),
 	'i': ((lambda a: a+1), 1),
 	'j': ((lambda a: call(a)), 1), # call a routine
@@ -113,13 +139,16 @@ defaults = {
 		'd': (cl, -3), # convert stack to list
 		'e': (cr, 1),  # Routine
 		'f': (cl, 1),  # top to list
-		'r': (repr, 1),# python3 __repr__
 		
+		'h': ((lambda a: chr(ci(a))), 1), #chr(a)
+		
+		'r': (repr, 1),# python3 __repr__
 		
 	},
 	'l': { # list 2-char
 		'a': ((lambda a,b: a.append(b) or a), 2), # append item to list
 		'A': ((lambda a: (a, a.pop())), 1), # pop item from list, keeping list
+		#'b':
 		'B': ((lambda a: a.pop()), 1), # last item from list
 		'c': ((lambda a: max(cl(a))), 1), # max
 		'C': ((lambda a: min(cl(a))), 1), # min
@@ -127,7 +156,12 @@ defaults = {
 		'D': ((lambda a: all(not i for i in cl(a))), 1), # none
 		'e': ((lambda a: any(cl(a))), 1), # any
 		'E': ((lambda a: any(not i for i in cl(a))), 1), # any not
+		#'f':
+		#'F':
+		#'g':
 		'G': ((lambda a,b: a.pop(b)), 2), # remove item b from list, keeping item
+		#'h':
+		#'H':
 		'i': ((lambda a,b,c: a.insert(ci(b),c) or a), 3), # insert c into a at b
 		'I': ((lambda a,b: (a, a.pop(b))), 2), # remove item b from list a, keeping list and item
 		'J': ((lambda a,b: (a.pop(ci(b)) and 0) or a), 2), # remove item b from list, keeping list
@@ -170,14 +204,30 @@ defaults = {
 		'j': (math.log10, 1),
 		'J': ((lambda a: 10**a), 1),
 		'k': (math.log, 2), # logb, inverse is 'e'
+		#'K': (notimplemented, 0),
 		'l': ((lambda a: 1 if a>0 else -1 if a<0 else 0), 1), #sign
 		'L': (abs, 1), # abs
-		'
+		
+		'p': ((lambda a: math.log(a, 2)), 1), #log2(n)
+		'P': (2 .__pow__, 1), # 2**n
+		
 	},
 	'n': ((lambda a: list(range(a))), 1), # range
 	'o': ((lambda a: None), 1), # pop
 	'p': ((lambda a: (a,a)), 1), # dup
-	'q': ((lambda: quit_(0)), 0),
+	'q': ((lambda: quit_(1)), 0),
+	'r': { # conditionals and loops
+		'a': ((lambda a,b: while_(a,b)), 2),
+		'A': ((lambda a,b: until(a,b)), 2),
+		'b': ((lambda a,b: forin(False, a, b)), 2), # do(a) For item in b, without pushing each item
+		'B': ((lambda a,b: forin(True, a, b)), 2), # do(a) For item in b, pushing each item
+		'c': ((lambda a,b: for_(False, a, b)), 2), # do(a) For item in range(b), without pushing each item
+		'C': ((lambda a,b: for_(True, a, b)), 2), # do(a) For item in range(b), pushing each item
+		'd': ((lambda a,b,c: for_(False, a, b, c)), 3), # do(a) For item in range(b,c), without pushing each item
+		'D': ((lambda a,b,c: for_(True, a, b, c)), 3), # do(a) For item in range(b,c), pushing each item
+		'e': ((lambda a,b,c,d: for_(False, a, b, c, d)), 4), # do(a) For item in range(b,c,d), without pushing each item
+		'E': ((lambda a,b,c,d: for_(True, a, b, c, d)), 4), # do(a) For item in range(b,c,d), pushing each item
+	},
 	's': ((lambda a,b: (b,a)), 2), # swp
 	't': { # control and i/o commands
 		'a': (input, 0), # user input as string
@@ -188,18 +238,26 @@ defaults = {
 		'f': ((lambda: eval(input())), 0), # user input as python (list, str, whatever)
 		'A': ((lambda a: print(cs(a))), 1), # print top of stack as string, removing it
 		'B': ((lambda a: print(cs(a)) or a), 1), # print top of stack as string, leaving it
-		'C': ((lambda: print(stack)), 0), # print stack
-		'q': ((lambda: quit_(1)), 0), # quit and print stack
-		'Q': ((lambda a: quit_(a)), 1), # quit printing or not depending of arg
-		'r': ((lambda a: quit_() if a else None), 1), # conditional quit based on arg
+		'C': ((lambda: printstack(2)), 0), # print stack as list, keeping
+		'D': ((lambda: printstack(1)), 0), # print stack as strings, separated by spaces, keeping
+		'E': ((lambda: printstack(3)), 0), # print stack as strings, not separated, keeping
+		'F': ((lambda *a: printstack(2, a)), -2), # print stack as list
+		'g': ((lambda *a: printstack(1, a)), -2), # print stack as strings, separated by spaces
+		'G': ((lambda *a: printstack(3, a)), -2), # print stack as strings, not separated
+		'q': ((lambda: quit_(2)), 0), # quit and print stack
+		'Q': ((lambda a: quit_(ci(a))), 1), # quit printing or not depending of arg
+		'r': ((lambda a: quit_(0) if a else None), 1), # conditional quit based on arg
 		'R': ((lambda a,b: quit_(a) if b else None), 1), # conditional quit based on b, printing or not based on a
+		's': (lrotate, 0), # rotate bottom of stack to top
+		'S': (rrotate, 0), # rotate top of stack to bottom
 		
 		'z': ((lambda: debug_()), 0),
 	},
 	'u': None, # implemented otherwhere
 	'v': None,
 	'w': None,
-	'x': ((lambda a,b,c: if_(a,b,c)), 3),
+	'x': ((lambda a,b,c: if_(a,b,c)), 3), # if c then a, else b
+	'y': ((lambda a,b,c: if_(b,a,c)), 3), # if c then b, else a
 }
 stack = []
 variables = {
@@ -207,24 +265,78 @@ variables = {
 }
 debug = False
 running = True
-def quit_(arg=0):
-	global running
+def printstack(arg=1, stack=stack):
 	if arg == 1:
-		print(stack)
+		if len(stack)==0:
+			pass
+		elif len(stack)==1:
+			print(cs(stack[0]))
+		else:
+			for item in stack[:-1]:
+				print(cs(item), end=' ')
+			print(cs(stack[-1]), end='')
 	elif arg == 2:
-		print(*stack,sep='')
+		print(stack)
+	elif arg == 3:
+		print(*stack, sep='')
+def findname(item, d=defaults, prefix=''):
+	if isinstance(item, tuple):
+		if len(item) == 2:
+			for k,v in d.items():
+				if v is item or v == item:
+					return prefix+k
+				if isinstance(k, dict):
+					r = findname(item, v, prefix+k)
+					if r:
+						return r
+					
+def quit_(arg=1):
+	global running
+	printstack(arg)
+	if arg>8:
+		quit(1)
 	running = False
 def if_(true, false, condition):
-	do(condition)
-	if stack[-1]:
-		do(true)
+	do_routine(condition)
+	cond = pop_n(1)[0]
+	if cond:
+		do_routine(true)
 	else:
-		do(false)
+		do_routine(false)
+def while_(thing, condition):
+	do_routine(condition)
+	cond = pop_n(1)[0]
+	while cond:
+		do_routine(thing)
+		do_routine(condition)
+		cond = pop_n(1)[0]
+def until(thing, condition):
+	do_routine(condition)
+	cond = pop_n(1)[0]
+	while not cond:
+		do_routine(thing)
+		do_routine(condition)
+		cond = pop_n(1)[0]
+def for_(push, thing, start, stop=None, step=1):
+	if stop is None:
+		stop = start
+		start = 0
+	for i in range(start, stop, step):
+		if push:
+			stack.append(i)
+		do_routine(thing)
+def forin(push, thing, items):
+	for item in items:
+		if push:
+			stack.append(item)
+		do_routine(thing)
 def debug_():
 	global debug
 	debug = not debug
 def storer(var):
 	def _store(val):
+		if debug:
+			print("storing %s to %s" % (val, var))
 		variables[var] = val
 	return _store
 def parse_line(line):
@@ -272,7 +384,7 @@ def parse_line(line):
 				if isroutine:
 					items.append(Routine(partial+c))
 				elif partial == 'w':
-					items.append(((lambda name: (lambda: variables[name]))(c),0))
+					items.append(((lambda name: (lambda: (print("loading "+name+":%s"%variables[name]) if debug else None)or variables[name]))(c),0))
 					items.append(defaults['j'])
 				elif partial == 'v':
 					items.append((storer(c),1)) # (func, argc)
@@ -344,14 +456,18 @@ def parse_line(line):
 		elif c == '-':
 			numeric = True
 			sign = -1
-		elif c in '; ':
+		elif c in '; \n':
 			pass
+		elif c in '#':
+			break
 		else:
-			raise SyntaxError("Unknown character: %s"%c)
+			raise SyntaxError("Unknown character: %r"%c)
 	if numeric:
 		items.append(number)
 	if quoted:
-		raise SyntaxError("Unclosed quote"+_err_loc(i))
+		items.append(s)
+		quoted = ''
+		#raise SyntaxError("Unclosed quote"+_err_loc(i))
 	if nest:
 		raise SyntaxError("Unclosed parenthesis"+_err_loc(i))
 	if partial:
@@ -369,17 +485,19 @@ def do_file(name):
 			itemslist.append(parse_line(line))
 	for items in itemslist:
 		do_items(items)
-	quit_(2)
+	quit_(1)
 
 def do_items(items):
 	stack_ = stack[:]
+	i = None
 	try:
 		for item in items:
+			i = item
 			do(item)
 	except (ArithmeticError, ValueError, IndexError) as e:
 		stack[:] = stack_
 		if debug:
-			print("do_items: %s"%e)
+			print("ex: do_items: %s (%s) at %s"%(e,items,findname(i)))
 			raise
 def pop_n(n):
 	if len(stack) < n:
@@ -387,12 +505,20 @@ def pop_n(n):
 	items = []
 	for i in range(n):
 		items.append(stack.pop())
-	return reversed(items)
+	return list(reversed(items))
 def call(routine):
 	if not isinstance(routine, Routine):
 		routine = cr(routine)
 	for item in routine.calls:
 		do(item)
+def do_routine(routine):
+	if debug:
+		print("do_routine: %r"%routine)
+	if not isinstance(routine, Routine):
+		routine = cr(routine)
+	do_items(routine.calls)
+	#do(routine)
+	#do((Routine.__call__, 1))
 def do(item):
 	if not running:
 		return
@@ -405,6 +531,8 @@ def do(item):
 		if argc >= 0:
 			argv = pop_n(argc)
 			ret = func(*argv)
+			if debug:
+				print(item, argv, "->", ret)
 			if ret is None:
 				pass
 			elif isinstance(ret, tuple):
@@ -420,8 +548,12 @@ def do(item):
 				argv = pop_n(argc)
 			except ValueError:
 				stack.append(argc)
+				if debug:
+					print("ex: do: argc == -1, not enough items to pop %d items"%argc)
 				raise
 			ret = func(*argv)
+			if debug:
+				print(item, argv, "->", ret)
 			if ret is None:
 				pass
 			elif isinstance(ret, tuple):
@@ -429,11 +561,24 @@ def do(item):
 					stack.append(i)
 			else:
 				stack.append(ret)
+		elif argc == -2:
+			argv = copystack(stack)
+			stack[:] = []
+			func(*argv)
+		elif argc == -3:
+			argv = copystack(stack)
+			stack[:] = []
+			func(argv)
+		else:
+			raise 
+	
 if __name__ == "__main__":
 	import sys
 	import getopt
-	opts, args = getopt.getopt(sys.argv[1:], 'idc:')
+	opts, args = getopt.getopt(sys.argv[1:], 'iVdc:')
 	opts = dict(opts)
+	if '-V' in opts:
+		print("RPNGolf v%d.%d.%d\nhttps://github.com/pizzapants184/rpngolf" % version)
 	if '-i' in opts:
 		while running:
 			do_line(input('> '))
@@ -454,7 +599,7 @@ if __name__ == "__main__":
 					raise ValueError("IDK %s" % item)
 		do_line(opts['-c'])
 		if running:
-			quit_(2)
+			quit_(1)
 	else:
 		if len(args) == 1:
 			do_file(args[0])
@@ -471,5 +616,5 @@ if __name__ == "__main__":
 					raise ValueError("IDK %s" % item)
 			do_file(args[0])
 		elif len(args)==0:
-			print("Usage:\n\t%s [file] <initial stack>\n\t%s -c [actual code] <initial stack>" % ((sys.argv[0],)*2))
+			print("Usage:\n\t%s [file] <initial stack>\n\t%s -c [actual code] <initial stack>\n\t%s -i\n\t%s -V" % ((sys.argv[0],)*2))
 	
