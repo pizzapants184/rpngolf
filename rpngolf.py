@@ -149,7 +149,7 @@ defaults = {
 		'a': ((lambda a,b: a.append(b) or a), 2), # append item to list
 		'A': ((lambda a: (a, a.pop())), 1), # pop item from list, keeping list
 		#'b':
-		'B': ((lambda a: a.pop()), 1), # last item from list
+		'B': ((lambda a: cl(a).pop()), 1), # last item from list
 		'c': ((lambda a: max(cl(a))), 1), # max
 		'C': ((lambda a: min(cl(a))), 1), # min
 		'd': ((lambda a: all(cl(a))), 1), # all
@@ -242,8 +242,8 @@ defaults = {
 		'D': ((lambda: printstack(1)), 0), # print stack as strings, separated by spaces, keeping
 		'E': ((lambda: printstack(3)), 0), # print stack as strings, not separated, keeping
 		'F': ((lambda *a: printstack(2, a)), -2), # print stack as list
-		'g': ((lambda *a: printstack(1, a)), -2), # print stack as strings, separated by spaces
-		'G': ((lambda *a: printstack(3, a)), -2), # print stack as strings, not separated
+		'G': ((lambda *a: printstack(1, a)), -2), # print stack as strings, separated by spaces
+		'H': ((lambda *a: printstack(3, a)), -2), # print stack as strings, not separated
 		'q': ((lambda: quit_(2)), 0), # quit and print stack
 		'Q': ((lambda a: quit_(ci(a))), 1), # quit printing or not depending of arg
 		'r': ((lambda a: quit_(0) if a else None), 1), # conditional quit based on arg

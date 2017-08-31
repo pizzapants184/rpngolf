@@ -1,8 +1,45 @@
-from modules import RGBase, RGSubModule
+from modules import RGBase, RGSubModule, VarModule
 from functions import RGFunction, RGFunctionFactory, coerce
 #from routines import Routine
 import state
 import copy
+def apply(func, item):
+	if isinstance(item, list):
+		ret = []
+		for i in item:
+			ret.append(apply(func, i))
+		return ret
+	else:
+		return func(item)
+def apply1_2(func, item):
+	if isinstance(item, list):
+		a = []
+		b = []
+		for i in item:
+			a_, b_ = apply1_2(func, i)
+			a.append(a_)
+			b.append(b_)
+		return a, b
+	else:
+		return func(item)
+def applyn_1(func, *items):
+	if isinstance(items[0], list):
+		ret = []
+		for i in range(len(items[0])):
+			ret.append(applyn_1(func, *(item[i] for item in items)))
+		return ret
+	else:
+		return func(*items)
+def apply1_n(func, item, n):
+	if isinstance(item, list):
+		rets = [[] for i in range(n)]
+		for i in item:
+			it = apply1_n(func, i, n)
+			for j in range(n):
+				rets[j].append(it[j])
+		return tuple(rets)
+	else:
+		return func(item)
 
 base = RGBase()
 state.base = base
@@ -155,6 +192,16 @@ def z(stack):
 	raise NotImplementedError
 
 
+vars = VarModule()
+u = vars.reader('u')
+base(u)
+v = vars.setter('v')
+base(v)
+w = vars.caller('w')
+base(w)
+
+
+
 k = RGSubModule('k')
 base(k)
 @k
@@ -215,133 +262,4 @@ def kr(stack):
 	A = stack.pop()
 	A_ = repr(A)
 	stack.append(A_)
-
-l = RGSubModule('l')
-base(l)
-@l
-@RGFunctionFactory('a', 2)
-def la(stack):
-	B = stack.pop()
-	A = stack.pop()
-	if isinstance(A, list):
-		A.append(B)
-		stack.append(A)
-	elif isinstance(A, str):
-		A += str(B)
-		stack.append(A)
-	else:
-		raise TypeError("Can only append to list or string")
-@l
-@RGFunctionFactory('A', 1)
-def lA(stack):
-	A = stack.pop()
-	item = A[-1]
-	A = A[:-1]
-	stack.append(A)
-	stack.append(item)
-@l
-@RGFunctionFactory('B', 1)
-def lB(stack):
-	A = stack.pop()
-	item = stack[-1]
-	stack.append(item)
-@l
-@RGFunctionFactory('c', 1)
-def lc(stack):
-	A = stack.pop()
-	item = max(A)
-	stack.append(item)
-@l
-@RGFunctionFactory('C', 1)
-def lC(stack):
-	A = stack.pop()
-	item = min(A)
-	stack.append(item)
-@l
-@RGFunctionFactory('d', 1)
-def ld(stack):
-	A = stack.pop()
-	item = all(A)
-	stack.append(item)
-@l
-@RGFunctionFactory('D', 1)
-def lD(stack):
-	A = stack.pop()
-	item = all(not x for x in A)
-	stack.append(item)
-@l
-@RGFunctionFactory('e', 1)
-def le(stack):
-	A = stack.pop()
-	item = any(A)
-	stack.append(item)
-@l
-@RGFunctionFactory('E', 1)
-def lE(stack):
-	A = stack.pop()
-	item = any(not x for x in A)
-	stack.append(item)
-@l
-@RGFunctionFactory('G', 2)
-def lG(stack):
-	B = stack.pop()
-	A = stack.pop()
-	stack.append(A[int(B)])
-@l
-@RGFunctionFactory('i', 2)
-def li(stack):
-	C = stack.pop()
-	B = stack.pop()
-	A = stack.pop()
-	A.insert(int(B), C)
-	stack.append(A)
-@l
-@RGFunctionFactory('I', 2)
-def lI(stack):
-	B = stack.pop()
-	A = stack.pop()
-	B = int(B)
-	item = A[B]
-	A = A[:B]+A[B+1:]
-	stack.append(A)
-	stack.append(item)
-@l
-@RGFunctionFactory('J', 2)
-def lJ(stack):
-	B = stack.pop()
-	A = stack.pop()
-	B = int(B)
-	item = A[B]
-	stack.append(item)
-@l
-@RGFunctionFactory('k', 1)
-def lk(stack):
-	A = stack.pop()
-	try:
-		length = len(A)
-	except TypeError:
-		length = 1
-	stack.append(length)
-@l
-@RGFunctionFactory('K', 2)
-def lK(stack):
-	B = stack.pop()
-	A = stack.pop()
-	B = int(B)
-	stack.append([A]*B)
-@l
-@RGFunctionFactory('l', 1)
-def ll(stack):
-	A = stack.pop()
-	try:
-		length = len(A)
-	except TypeError:
-		length = 1
-	stack.append(A)
-	stack.append(length)
-@l
-@RGFunctionFactory('L', 1)
-def lL(stack):
-	A = stack.pop()
-	A = int(A)
-	stack.append([0]*A)
+#from lists import 

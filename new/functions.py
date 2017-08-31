@@ -28,7 +28,7 @@ class RGFunction:
 		self.module = None
 	def __call__(self, stack):
 		if len(stack) < self.argc:
-			raise ValueError("not enough items on stack: %d < %d" % (len(stack), self.argc))
+			raise ValueError("not enough items on stack for %s: %d < %d" % (self.fullname(), len(stack), self.argc))
 		#_s = copy.deepcopy(stack)
 		self.func(stack)
 	def __repr__(self):
