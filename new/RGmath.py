@@ -241,7 +241,7 @@ def mk(stack):
 	"log base n: a, b -> math.log(a, b)"
 	def func(a, b):
 		if isinstance(a, (int, float, str)) and isinstance(b, (int, float, str)):
-			return math.log(a, b)
+			return math.log(float(a), float(b))
 		else:
 			raise TypeError
 	b = stack.pop()
@@ -266,7 +266,7 @@ def ml(stack):
 	stack.append(apply(func, item))
 @module
 @RGFunctionFactory('L', 1)
-def ML(stack):
+def mL(stack):
 	"abs"
 	def func(item):
 		if isinstance(item, (int, float, str)):
@@ -275,5 +275,96 @@ def ML(stack):
 			raise TypeError
 	item = stack.pop()
 	stack.append(apply(func, item))
+@module
+@RGFunctionFactory('m', 1)
+def mm(stack):
+	"log base 2"
+	def func(a):
+		if isinstance(a, (int, float, str)):
+			return math.log(float(a), 2)
+		else:
+			raise TypeError
+	item = stack.pop()
+	stack.append(apply(func, item))
+@module
+@RGFunctionFactory('M', 1)
+def mM(stack):
+	"2**x"
+	def func(a):
+		if isinstance(a, (int, float, str)):
+			return 2**float(a)
+		else:
+			raise TypeError
+	item = stack.pop()
+	stack.append(apply(func, item))
+
+
+
+
+
+@module
+@RGFunctionFactory('w', 1)
+def ms(stack):
+	"apply collatz function once, ignoring 1 -> 4"
+	def func(a):
+		if (isinstance(a, (int, str)) and int(a) >= 1) or (isinstance(a, float) and a >= 1 and (a%1 == 0)):
+			if int(a) == 1:
+				return int(a)
+			elif int(a)%2: # odd
+				return 3*int(a)+1
+			else:
+				return int(a)//2
+		else:
+			raise TypeError
+	item = stack.pop()
+	stack.append(apply(func, item))
+@module
+@RGFunctionFactory('W')
+def mW(stack):
+	"apply inverse collatz function once, ignoring 4 -> 1"
+	def func(a):
+		if (isinstance(a, (int, str)) and int(a) >= 1) or (isinstance(a, float) and a >= 1 and (a%1 == 0)):
+			if int(a)%6 == 4 and int(a) != 4:
+				return [int(a)*2, (int(a)-1)//3]
+			else:
+				return int(a)*2
+		else:
+			raise TypeError
+	item = stack.pop()
+	stack.append(apply(func, item))
+
+
+
+@module
+@RGFunctionFactory('x')
+def mx(stack):
+	"pi"
+	stack.append(math.pi)
+@module
+@RGFunctionFactory('X')
+def mX(stack):
+	"tau"
+	stack.append(2*math.pi)
+@module
+@RGFunctionFactory('y')
+def my(stack):
+	"e"
+	stack.append(math.pi)
+@module
+@RGFunctionFactory('Y')
+def mY(stack):
+	"e**(-1)"
+	stack.append(1/math.e)
+@module
+@RGFunctionFactory('z')
+def mz(stack):
+	"phi (golden ratio)"
+	stack.append((1+5**(1/2))/2)
+@module
+@RGFunctionFactory('Z')
+def mZ(stack):
+	"conjugate of phi"
+	stack.append((1-5**(1/2))/2)
+
 
 base.base(module)

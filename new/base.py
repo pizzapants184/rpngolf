@@ -1,6 +1,6 @@
 from modules import RGBase, RGSubModule, VarModule
 from functions import RGFunction, RGFunctionFactory, coerce
-#from routines import Routine
+import routines
 import state
 import copy
 def apply(func, item):
@@ -99,7 +99,7 @@ def i(stack):
 @RGFunctionFactory('j', 1)
 def j(stack):
 	A = stack.pop()
-	A = Routine(A)
+	A = routines.Routine(A)
 	A(stack)
 #k is coercion module
 #l is list/string module

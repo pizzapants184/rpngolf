@@ -10,7 +10,7 @@ def parse(source):
 		for item in source.split('\n'):
 			r += parse(item)
 		return r
-	elif len(source)<1:
+	elif len(source) == 0:
 		return []
 	elif source[0] in ' \t':
 		return parse(source[1:])
@@ -85,17 +85,40 @@ def parse(source):
 				nest -= 1
 				print(source)
 			return [routines.Routine(source[1:-1])]
+	elif source[0] == '[':
+		nest = 1
+		length = 1
+		try:
+			while True:
+				if source[length] == '[':
+					nest += 1
+				elif source[length] == ']':
+					nest -= 1
+				if nest:
+					length += 1
+				else:
+					return [parse(source[1:length])] + parse(source[length+1:])
+		except IndexError:
+			while nest > 0:
+				source += ']'
+				nest -= 1
+				if state.debug_:
+					print(source)
+			return [parse(source[1:-1])]
+	#elif source[0] == '[':
+	#	match = re.match("^[[][^]]*([]]|$)", source)
+	#	raise ValueError
 					
-	elif re.match("^([0-9]+\\.[0-9]*|[0-9]*\\.[0-9]+)(.*)$", source):
-		match = re.match("^([0-9]+\\.[0-9]*|[0-9]*\\.[0-9]+)(.*)$", source)
+	elif re.match("^(-?[0-9]+\\.[0-9]*|[0-9]*\\.[0-9]+)(.*)$", source):
+		match = re.match("^(-?[0-9]+\\.[0-9]*|[0-9]*\\.[0-9]+)(.*)$", source)
 		groups = match.groups()
 		return [float(groups[0])] + parse(groups[1])
-	elif re.match("^(@[01]*)(.*)$", source):
-		match = re.match("^(@[01]*)(.*)$", source)
+	elif re.match("^(-)?(@[01]*)(.*)$", source):
+		match = re.match("^(-?)(@[01]*)(.*)$", source)
 		groups = match.groups()
-		return [int('0'+groups[0][1:], 2)] + parse(groups[1])
-	elif re.match("^([0-9]+)(.*)$", source):
-		match = re.match("^([0-9]+)(.*)$", source)
+		return [int(groups[0]+'0'+groups[1][1:], 2)] + parse(groups[2])
+	elif re.match("^(-?[0-9]+)(.*)$", source):
+		match = re.match("^(-?[0-9]+)(.*)$", source)
 		groups = match.groups()
 		return [int(groups[0])] + parse(groups[1])
 	elif source[0] == '#':
@@ -127,3 +150,6 @@ def parse(source):
 					return [lookup]+parse(source[depth:])
 		elif isinstance(lookup, functions.RGFunction):
 			return [lookup]+parse(source[1:])
+def parselist(source):
+	"returns list of items, rest of string; expects input to start with [ and end with ]"
+	

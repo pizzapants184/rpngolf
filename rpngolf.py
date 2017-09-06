@@ -208,8 +208,8 @@ defaults = {
 		'l': ((lambda a: 1 if a>0 else -1 if a<0 else 0), 1), #sign
 		'L': (abs, 1), # abs
 		
-		'p': ((lambda a: math.log(a, 2)), 1), #log2(n)
-		'P': (2 .__pow__, 1), # 2**n
+		'm': ((lambda a: math.log(a, 2)), 1), #log2(n)
+		'M': (2 .__pow__, 1), # 2**n
 		
 	},
 	'n': ((lambda a: list(range(a))), 1), # range

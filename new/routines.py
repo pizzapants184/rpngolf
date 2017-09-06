@@ -8,3 +8,13 @@ class Routine:
 		return '('+self.source+')'
 	def __call__(self, stack):
 		state.do_items(self.calls)
+	def __mul__(self, other):
+		if isinstance(other, (int, float, str)) and int(other) >= 0:
+			return Routine(self.source*int(other))
+		else:
+			raise NotImplemented
+	def __rmul__(self, other):
+		if isinstance(other, (int, float, str)) and int(other) >= 0:
+			return Routine(self.source*int(other))
+		else:
+			raise NotImplemented
