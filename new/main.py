@@ -6,7 +6,7 @@ import RGlist
 import RGloops
 import RGcontrol
 
-version = (7, 3, 0)
+version = (7, 4, 0)
 
 if __name__ == "__main__":
 	import sys

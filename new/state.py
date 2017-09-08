@@ -7,11 +7,12 @@ running = True
 debug_ = False
 stack = []
 #base = None
+stacktrace = []
 
-def do_items(items):
+def s_do_items(items, stack):
 	for item in items:
-		do(item)
-def do(item):
+		s_do(item, stack)
+def s_do(item, stack):
 	if running:
 		if debug_:
 			print("stack: %s\nitem: %s" % (stack, item))
@@ -21,9 +22,30 @@ def do(item):
 			stack.append(item)
 		if debug_:
 			print("stack: %s\n" % stack)
-def do_line(line):
+def s_do_line(line, stack):
 	items = parse.parse(line)
-	do_items(items)
+	s_do_items(items, stack)
+
+
+def do_items(items):
+	s_do_items(items, stack)
+#	for item in items:
+#		do(item)
+def do(item):
+	s_do(item, stack)
+#	if running:
+#		if debug_:
+#			print("stack: %s\nitem: %s" % (stack, item))
+#		if isinstance(item, functions.RGFunction):
+#			item(stack)
+#		else:
+#			stack.append(item)
+#		if debug_:
+#			print("stack: %s\n" % stack)
+def do_line(line):
+	s_do_line(line, stack)
+#	items = parse.parse(line)
+#	do_items(items)
 def do_file(name):
 	f = open(name, "r")
 	for line in f.readlines():

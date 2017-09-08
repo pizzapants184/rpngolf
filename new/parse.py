@@ -46,18 +46,13 @@ def parse(source):
 					elif source[length] == 'v':
 						source = source[:length-1] + '\v' + source[length+1:]
 					elif source[length] in '01234567':
-						print("before: %r"%source)
-						print("first",length)
 						if len(source) > length+1 and source[length+1] in '01234567':
-							print("second",length+1)
 							if len(source) > length+2 and source[length+2] in '01234567':
-								print("third",length+2)
 								source = source[:length-1] + chr(int(source[length:length+3], 8)) + source[length+3:]
 							else:
 								source = source[:length-1] + chr(int(source[length:length+2], 8)) + source[length+2:]
 						else:
 							source = source[:length-1] + chr(int(source[length:length+1], 8)) + source[length+1:]
-						print("after: %r"%source)
 					else:
 						length += 1
 				elif source[length] == "'":
@@ -97,7 +92,10 @@ def parse(source):
 				if nest:
 					length += 1
 				else:
-					return [parse(source[1:length])] + parse(source[length+1:])
+					items = parse(source[1:length])
+					substack = []
+					state.s_do_items(items, substack)
+					return [substack] + parse(source[length+1:])
 		except IndexError:
 			while nest > 0:
 				source += ']'

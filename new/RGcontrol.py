@@ -33,7 +33,7 @@ def te(stack):
 	stack.append(Routine(input()))
 @module
 @RGFunctionFactory('f')
-def td(stack):
+def tf(stack):
 	item = input()
 	stack.append(eval(item, {"__buitins__": None}, {}))
 @module
@@ -164,10 +164,31 @@ def tt(stack):
 	"reverse stack"
 	stack[:] = stack[::-1]
 @module
-@RGFunctionFactory('z')
-def tz(stack):
+@RGFunctionFactory('y')
+def ty(stack):
 	state.debug_ = True
 @module
-@RGFunctionFactory('Z')
-def tZ(stack):
+@RGFunctionFactory('Y')
+def tY(stack):
 	state.debug_ = False
+@module
+@RGFunctionFactory('z', 1)
+def tz(_):
+	"zoom in to top of stack"
+	item = state.stack[-1]
+	if not isinstance(item, list):
+		raise TypeError
+	_s = state.stack
+	state.stacktrace.append(_s)
+	state.stack = item
+	
+@module
+@RGFunctionFactory('Z')
+def tZ(_):
+	"zoom out from stack to parent stack, equivalent to "
+	if len(state.stacktrace) < 1:
+		return
+	if state.stack not in state.stacktrace[-1]:
+		raise ValueError("stack error: %s, %s" % (state.stack, state.stacktrace))
+	state.stack = state.stacktrace[-1]
+		
