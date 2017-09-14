@@ -1,0 +1,12 @@
+# by pizzapants184
+# Numeric literals are pushed to the stack
+45
+# tA pops the top of the stack and prints it
+tA
+7tA9.0tA0.9tA.8tA
+
+# String literals (with single quotes) are pushed to the stack
+'Hello,'
+'World
+# Quoted strings can be terminated by a quote or a newline
+
